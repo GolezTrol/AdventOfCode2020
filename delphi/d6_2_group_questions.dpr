@@ -1,4 +1,4 @@
-﻿program d6_1_group_questions;
+program d6_2_group_questions;
 
 {$APPTYPE CONSOLE}
 
@@ -14,6 +14,7 @@ var
   GroupAnswers: TStringList;
   Line: String;
   AnswerFlags: array[TAnswer] of Boolean;
+  PersonAnswerFlags: array[TAnswer] of Boolean;
   Answers: String;
   Answer: TAnswer;
   SubTotal, Total: Integer;
@@ -32,11 +33,18 @@ begin
       else
       begin
         for Answer := Low(TAnswer) to High(TAnswer) do
-          AnswerFlags[Answer] := False;
+          AnswerFlags[Answer] := True;
 
         for Answers in GroupAnswers do
+        begin
+          for Answer := Low(TAnswer) to High(TAnswer) do
+            PersonAnswerFlags[Answer] := False;
           for Answer in Answers do
-            AnswerFlags[Answer] := True;
+            PersonAnswerFlags[Answer] := True;
+          for Answer := Low(TAnswer) to High(TAnswer) do
+            if not PersonAnswerFlags[Answer] then
+              AnswerFlags[Answer] := False;
+        end;
 
         SubTotal := 0;
         for Answer := Low(TAnswer) to High(TAnswer) do
