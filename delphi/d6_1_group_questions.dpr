@@ -8,7 +8,7 @@ uses
   Windows, System.SysUtils, Classes, RegularExpressions;
 
 type
-  TAnswer = 'a'..'c';
+  TAnswer = 'a'..'z';
 var
   Input: TStringList;
   GroupAnswers: TStringList;
