@@ -1,4 +1,4 @@
-﻿program d11_1_game_of_seats;
+﻿program d11_game_of_seats;
 
 {$APPTYPE CONSOLE}
 
@@ -57,7 +57,7 @@ type
     property Cell[X, Y: Integer]: TCell read GetCell write SetCell;
     procedure SetTile(X, Y: Integer; const Value: TTile);
     function WasChanged(X, Y: Integer): Boolean;
-    procedure Step;
+    procedure Step(LineOfSight: Boolean);
   end;
 
 function BuildGridStr(const Grid: TGrid): String;
@@ -149,12 +149,14 @@ begin
   end;
 end;
 
-procedure TGrid.Step;
+procedure TGrid.Step(LineOfSight: Boolean);
 var
   X, Y: Integer;
   dx, dy: Integer;
   a: Integer;
   c: TCell;
+  j: Integer;
+  Index: Integer;
 begin
   for Y := 0 to Height - 1 do
     for X := 0 to Width - 1 do
@@ -163,8 +165,22 @@ begin
       for dy := -1 to 1 do
         for dx := -1 to 1 do
           if (dx <> 0) or (dy <> 0) then
-            if Cell[X+dx, Y+dy].Tile = tOccupied then
-              Inc(a);
+          begin
+            j := 1;
+            while TryIndex(X+(dx*j), Y+(dy*j), Index) do
+            begin
+              if Cells[Index].Tile = tOccupied then
+              begin
+                Inc(a);
+                Break;
+              end
+              else if Cells[Index].Tile = TEmpty then
+                Break;
+              Inc(j);
+              if not LineOfSight then
+                Break;
+            end;
+          end;
       c := Cell[X,Y];
       c.Adjacent := a;
       Cell[X, Y] := c;
@@ -176,7 +192,7 @@ begin
       c := Cell[X,Y];
       if (c.Tile = tEmpty) and (c.Adjacent = 0) then
         SetTile(X, Y, tOccupied)
-      else if (c.Tile = tOccupied) and (c.Adjacent >= 4) then
+      else if (c.Tile = tOccupied) and (c.Adjacent >= 4 + Ord(LineOfSight)) then
         SetTile(X, Y, tEmpty)
       else
         SetTile(X, Y, c.Tile);
@@ -204,9 +220,6 @@ begin
   Result := TryIndex(X, Y, Index) and (Cells[Index].Tile <> Cells[Index].TileBefore);
 end;
 
-var
-  Grid: TGrid;
-
 { TCell }
 
 function TCell.Modified: Boolean;
@@ -214,37 +227,50 @@ begin
   Result := Tile <> TileBefore;
 end;
 
+procedure DoDay(DayNr: Integer; out StepCount, Occupied: Integer);
 var
-  StepCount: Integer;
-  X, Y, Occupied: Integer;
+  Grid: TGrid;
+  X, Y: Integer;
   c: TCell;
+begin
+  Grid := LoadGrid(Input);
+  StepCount := 0;
+
+  Write(Esc, '[?1049h');
+
+  repeat
+    Grid.Step(DayNr = 2);
+    Inc(StepCount);
+    Write(ESC, '[0;0H', Esc, '[40m', Esc, '[2J'); // Reset cursor position, color, and clear screen
+    WriteLn(BuildGridStr(Grid));
+    Sleep(50);
+  until Grid.Stable;
+
+  Occupied := 0;
+  for Y := 0 to Grid.Height - 1 do
+    for X := 0 to Grid.Width - 1 do
+    begin
+      c := Grid.Cell[X,Y];
+      if c.Tile = tOccupied then
+        Inc(Occupied);
+    end;
+
+  Write(Esc, '[?1049l');
+end;
+
+var
+  Day, StepCount, Occupied: Integer;
 begin
   Input := TStringList.Create;
   try
     Input.LoadFromFile(ParamStr(1));
 
-    Grid := LoadGrid(Input);
-    StepCount := 0;
-
-    repeat
-      Grid.Step;
-      Inc(StepCount);
-      Write(ESC, '[0;0H', Esc, '[2J'); // Reset cursor position, CLear screen
-      Sleep(10);
-      WriteLn(BuildGridStr(Grid));
-    until Grid.Stable;
-
-    Occupied := 0;
-    for Y := 0 to Grid.Height - 1 do
-      for X := 0 to Grid.Width - 1 do
-      begin
-        c := Grid.Cell[X,Y];
-        if c.Tile = tOccupied then
-          Inc(Occupied);
-      end;
-
-    WriteLn('Stable after ', StepCount, ' steps. ', Occupied, ' seats occupied.');
-
+    for Day := 1 to 2 do
+    begin
+      DoDay(Day, StepCount, Occupied);
+      WriteLn(Esc, '[93m', 'Day ', Day, '. Stable after ', StepCount, ' steps. ', Occupied, ' seats occupied.');
+      Sleep(1000);
+    end;
 
   finally
     Input.Free;
