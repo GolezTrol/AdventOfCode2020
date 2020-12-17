@@ -34,25 +34,29 @@ begin
   end;
 end;
 
-function CheckBusses(const Busses: TBusses; Start: TTime): Boolean;
+function CheckBusses(const Busses: TBusses; const Bus: TBus; const Start: TTime): Boolean;
 var
   i: Integer;
 begin
   for i := Low(Busses) to High(Busses) do
   begin
     if (Busses[i] > 0) and ((Start+i) mod Busses[i] > 0) then
-      Exit(False);
+      Exit(False)
+    else if Busses[i] = Bus then
+      Break;
   end;
   Exit(True);
 end;
 
-function Lcm(const Busses: TBusses): TTime;
+function Lcm(const Busses: TBusses; const ToBus: Integer): TTime;
 var
   Bus: TBus;
 begin
   Result := 1;
   for Bus in Busses do
-    if Bus > 0 then
+    if Bus = ToBus then
+      Break
+    else if Bus > 0 then
       Result := Result * Bus;
 end;
 
@@ -61,12 +65,12 @@ var
   Incr: TTime;
   c: TBusses;
 begin
-  Incr := Lcm(Busses);
+  Incr := Lcm(Busses, Bus);
   c := Copy(Busses, 0, Length(Busses));
   SetLength(c, Length(c) + 1);
   c[High(c)] := Bus;
-  while not CheckBusses(c, Start) do
-    inc(Start, Incr);
+  while not CheckBusses(c, Bus, Start) do
+    Inc(Start, Incr);
 
   Result := Start;
 end;
@@ -80,18 +84,13 @@ var
   AlignmentTime: TTime;
   Stopwatch: TStopwatch;
 begin
-  Busses := GetInput;
-
   Stopwatch := TStopwatch.StartNew;
-  SetLength(SoFar, 1);
-  SoFar[0] := Busses[0];
+  Busses := GetInput;
 
   Start := Busses[0];
   for i := 1 to High(Busses) do
   begin
-    AlignmentTime := FindAllignmentTime(SoFar, Busses[i], Start);
-    SetLength(SoFar, Length(SoFar)+1);
-    SoFar[High(SoFar)] := Busses[i];
+    AlignmentTime := FindAllignmentTime(Busses, Busses[i], Start);
     Start := AlignmentTime;
   end;
 
