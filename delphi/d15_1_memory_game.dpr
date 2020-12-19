@@ -12,15 +12,20 @@ type
   TNumber = type Int64;
   TTurn = type Int64;
   TMemory = TDictionary<TNumber, TTurn>;
+const
+  OutputTurns: array[1..3] of TTurn = (2020, 30000000, 30000001);
 var
+  OutputIndex: Integer;
   Input: TStringList;
   Line: String;
-  Index: Integer;
   Spoken: TMemory;
   Turn, LastTurn, SpokenTurn: TTurn;
   Last, Next: TNumber;
+  Output, Loop: Boolean;
 begin
-  Last := 0; Next := 0; LastTurn := 0;
+  Loop := True;
+  OutputIndex := Low(OutputTurns);
+  Last := 0; LastTurn := 0;
   Spoken := TMemory.Create;
   Input := TStringList.Create;
   try
@@ -37,23 +42,36 @@ begin
       Inc(Turn);
     end;
 
-    while Turn <= 2020 do
+    while Loop do
     begin
       if Spoken.TryGetValue(Last, SpokenTurn) then
       begin
         Next := Turn - 1 - SpokenTurn;
-        WriteLn(Turn, ': ', Last, ' was said in turn ', SpokenTurn, ', ', Next, ' turns apart. Speaking ', Next);
+        if Output then
+          WriteLn(Turn, ': ', Last, ' was said in turn ', SpokenTurn, ', ', Next, ' turns apart. Speaking ', Next);
       end else
       begin
         Next := 0;
-        WriteLn(Turn, ': ', Last, ' was not said before. Speaking 0');
+        if Output then
+          WriteLn(Turn, ': ', Last, ' was not said before. Speaking 0');
       end;
-      WriteLn('Remembering that ', Last, ' was said in turn ', LastTurn);
+      //WriteLn('Remembering that ', Last, ' was said in turn ', LastTurn);
       Spoken.AddOrSetValue(Last, LastTurn);
       Last := Next;
       LastTurn := Turn;
       Inc(Turn);
+
+      Output := False;
+      if OutputTurns[OutputIndex] = Turn then
+      begin
+        Output := True;
+        if OutputIndex = High(OutputTurns) then
+          Break;
+        Inc(OutputIndex);
+      end;
     end;
+
+    WriteLn('done');
 
   finally
     Input.Free;
